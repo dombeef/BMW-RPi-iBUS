@@ -9,8 +9,8 @@ AGENT_INTERFACE = SERVICE_NAME + ".Agent1"
 MEDIACONTROL_INTERFACE = SERVICE_NAME + ".MediaControl1"
 MEDIAPLAYER_INTERFACE = SERVICE_NAME + ".MediaPlayer1"
 
-BT_DEVICE_NAME = "BMW Multimedia"
-BT_PIN_CODE = "50233"
+BT_DEVICE_NAME = "Nicks Fancy BMW"
+BT_PIN_CODE = "1234"
 
 def show_adapter_info():
     bus = dbus.SystemBus()
@@ -27,7 +27,7 @@ def show_adapter_info():
             if (key == "Class"):
                 print("    %s = 0x%06x" % (key, value))
             elif (key == "UUIDs"):
-                continue                
+                continue
             else:
                 print("    %s = %s" % (key, value))
         print()
@@ -41,7 +41,7 @@ def get_adapter_address():
             continue
         return adapter["Address"]
     return False
-        
+
 def get_managed_objects():
 	bus = dbus.SystemBus()
 	manager = dbus.Interface(bus.get_object(SERVICE_NAME, "/"),
@@ -108,7 +108,7 @@ def dev_disconnect(path):
     except Exception as ex:
         print("Unable to disconnect device. '{0}'".format(ex.message))
         return False
-    
+
 class Agent(dbus.service.Object):
 	@dbus.service.method(AGENT_INTERFACE, in_signature="os", out_signature="")
 	def AuthorizeService(self, device, uuid):

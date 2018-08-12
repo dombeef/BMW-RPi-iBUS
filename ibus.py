@@ -42,7 +42,7 @@ class IBUSService(object):
     def __init__(self, onIBUSready_callback, onIBUSpacket_callback):
         self.onIBUSready_callback = onIBUSready_callback
         self.onIBUSpacket_callback = onIBUSpacket_callback
-        
+
         self._stop = threading.Event()
 
     def start(self):
@@ -51,12 +51,12 @@ class IBUSService(object):
         """
         try:
             self.handle = serial.Serial(self.port,
-                                        baudrate=self.baudrate, 
-                                        bytesize=self.bytesize, 
-                                        parity=self.parity, 
-                                        stopbits=self.stopbits, 
-                                        rtscts=self.rtscts, 
-                                        timeout=self.timeout, 
+                                        baudrate=self.baudrate,
+                                        bytesize=self.bytesize,
+                                        parity=self.parity,
+                                        stopbits=self.stopbits,
+                                        rtscts=self.rtscts,
+                                        timeout=self.timeout,
                                         writeTimeout=self.writeTimeout)
         except:
             print "Cannot access to serial port " + self.port
@@ -142,11 +142,11 @@ class IBUSService(object):
                     continue
 
                 # create packet
-                packet = IBUSPacket(source_id=source_id, 
-                                    length=length, 
+                packet = IBUSPacket(source_id=source_id,
+                                    length=length,
                                     destination_id=destination_id,
-                                    data=data, 
-                                    xor_checksum=xor, 
+                                    data=data,
+                                    xor_checksum=xor,
                                     raw=current_packet)
 
                 # add packet if valid
@@ -339,11 +339,11 @@ class IBUSCommands(object):
                 data = "be"
             data += "20" + str.encode("hex")
 
-        packet = IBUSPacket(source_id="c8", 
-                            length="{:02x}".format(length), 
+        packet = IBUSPacket(source_id="c8",
+                            length="{:02x}".format(length),
                             destination_id="80", data="234232" + data)
         return packet if packet.is_valid() else False
-    
+
     def print_on_display(self, data=[]):
         for i in range(0, 10):
             time.sleep(.2)
@@ -357,12 +357,12 @@ class IBUSCommands(object):
             time.sleep(.2)
             if self.print_stopped():
                 return
-        
+
         for i in range(1, len(data[0])-RADIO_DISPLAY_SIZE+1):
             packet = self.get_display_packet(data[0][i:])
             self.ibus.send(packet.raw)
 
-            time.sleep(.5)        
+            time.sleep(.5)
             if self.print_stopped():
                 return
 
@@ -371,45 +371,45 @@ class IBUSCommands(object):
 
     def print_clear(self):
         self._print_stop.clear()
-    
+
     def print_stop(self):
         self._print_stop.set()
 
     def print_stopped(self):
         return self._print_stop.isSet()
-    
+
     def reset_display(self):
         """
         It is just an empty string sent to display
         """
         self.ibus.send("c805802342321e")
-    
+
     def get_pdc_display_packet(self, data):
         hex_str = ""
         for i in range(0, 12):
             value_index = int(math.modf(i/3)[1])
 
             # set value in 20-160 boundary for better calibration
-            value = max(20, min(160, data[value_index]))        
+            value = max(20, min(160, data[value_index]))
             value = int(math.modf(value/26)[1]) + 2
             hex_str += "b" + str(value)
 
         packet = self.get_display_packet(hex_str, "reverse")
         return packet
-    
+
     def volume_down(self):
         for i in range(0, 5):
             self.ibus.send("50046832101e")
             time.sleep(0.1)
-    
+
     def volume_up(self):
         for i in range(0, 4):
             self.ibus.send("50046832111f")
             time.sleep(0.1)
-        
+
     def set_clock(self):
         """
-        GT telling IKE to set the time: 
+        GT telling IKE to set the time:
         3B 06 80 40 01 0C 3B cc
         GT -> IKE : On-board computer set data: Set Time = 12:59
         40 = OBC Set data
@@ -417,16 +417,16 @@ class IBUSCommands(object):
         0C = hours in hex
         3B = minutes in hex
 
-        GT telling IKE to set the date: 
+        GT telling IKE to set the date:
         3B 07 80 40 02 1B 05 08 cc
         GT -> IKE : On-board computer set data: Set Date = 27/05/08
-        40 = OBC Set data 
+        40 = OBC Set data
         02 = Date
-        1B = day in hex 
+        1B = day in hex
         05 = month in hex
         08 = year in hex
         """
-        
+
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             data = '\x1b' + 47 * '\0'
@@ -443,9 +443,9 @@ class IBUSCommands(object):
                 hour = "{:02x}".format(int(d.hour))
                 minute = "{:02x}".format(int(d.minute))
 
-                packet = IBUSPacket(source_id="3b", 
-                                    length="06", 
-                                    destination_id="80", 
+                packet = IBUSPacket(source_id="3b",
+                                    length="06",
+                                    destination_id="80",
                                     data="4001" + hour + minute)
                 self.ibus.send(packet.raw)
 
@@ -454,9 +454,9 @@ class IBUSCommands(object):
                 month = "{:02x}".format(int(d.month))
                 year = "{:02x}".format(int(str(d.year)[2:]))
 
-                packet = IBUSPacket(source_id="3b", 
-                                    length="07", 
-                                    destination_id="80", 
+                packet = IBUSPacket(source_id="3b",
+                                    length="07",
+                                    destination_id="80",
                                     data="4002" + day + month + year)
                 self.ibus.send(packet.raw)
             else:
@@ -482,14 +482,14 @@ class IBUSCommands(object):
         Contains R_Gear, Oil Presure, Handbrake etc.
         """
         self.ibus.send("bf0380122e")
-        
+
     def request_for_gong(self):
         """
         IBUS Message: BF 03 80 1a 26
         But, it doesn't work for me :(
         """
-        self.ibus.send("bf03801a26")        
-        
+        self.ibus.send("bf03801a26")
+
     def request_for_mileage(self):
         """
         Request mileage from the IKE
@@ -501,28 +501,28 @@ class IBUSCommands(object):
         Byte 11 is the the days to inspection.
         """
         self.ibus.send("bf0380162a")
-        
+
     def request_for_fuel_1(self):
         self.ibus.send("3b0580410401fa")
-    
+
     def reset_fuel_1(self):
         self.ibus.send("3b0580410410eb")
-    
+
     def request_for_fuel_2(self):
         self.ibus.send("3b0580410501fb")
-    
+
     def reset_fuel_2(self):
         self.ibus.send("3b0580410510ea")
-    
+
     def request_for_range(self):
         self.ibus.send("3b0580410601f8")
-        
+
     def request_for_distance(self):
         self.ibus.send("3b0580410701f9")
 
     def reset_distance(self):
         self.ibus.send("3b0580410710e8")
-        
+
     def request_for_limit(self):
         self.ibus.send("3b0580410901f7")
 
@@ -539,18 +539,18 @@ class IBUSCommands(object):
         bytes 6 - 9 contains distance data
         """
         self.ibus.send("3f03601b47")
-        
+
     def set_speed_limit(self, speed):
         """
         3b 06 80 40 09 00 xx CK - speed limits set (audio signal with exceeding)
         3b 05 80 41 09 20 CK    - speed limits on current speed set
         """
-        packet = IBUSPacket(source_id="3b", 
-                            length="06", 
+        packet = IBUSPacket(source_id="3b",
+                            length="06",
                             destination_id="80",
                             data="400900" + "{:02x}".format(speed))
         self.ibus.send(packet.raw)
-        
+
     def reset_speed_limit(self):
         """
         3b 05 80 41 09 08 fe - deactivate adjusted speed limit
@@ -570,7 +570,7 @@ class IBUSCommands(object):
         """
         @return 68 0D 3F A0 01 0D 56 20 20 30 31 30 31 34 94
         5th bit indicates RADIO is on or not
-        
+
         68 0d 3f a0 31 0d ... - on
         68 0d 3f a0 30 0d ... - off
         """
@@ -587,7 +587,7 @@ class IBUSCommands(object):
         It turns-on "clown nose" under back mirror for 3 seconds
         """
         self.ibus.send("3f05000c4e0179")
-        
+
     def request_light_status(self):
         """
         @return D0 08 BF 5B 00 00 00 00 00 3C

@@ -20,7 +20,7 @@ DATA = {
         "connected": False,
     },
     "rfcomm": {
-        "connected": False 
+        "connected": False
     },
     "player": {
         "state": None,
@@ -79,7 +79,7 @@ def set_bitmask(xor, bit):
 
 def onIBUSready():
     ibus.cmd.clown_nose_on()
-    
+
     ibus.cmd.reset_fuel_2()
 
     ibus.cmd.request_for_ignition()
@@ -92,6 +92,9 @@ def onIBUSready():
     ibus.cmd.request_for_sensors()
     ibus.cmd.request_for_radio_status()
     ibus.cmd.request_for_vin()
+
+    #packet = ibus.cmd.get_display_packet("Welcome")
+    #ibus.send(packet.raw)
 
 def onBluetoothConnected(state, adapter=None):
     global ibus
@@ -114,8 +117,8 @@ def onBluetoothConnected(state, adapter=None):
         time.sleep(1.5)
 
         # switch to AUX
-        ibus.cmd.request_for_radio_mode_switch()
-        ibus.cmd.request_for_radio_mode_switch()
+        #ibus.cmd.request_for_radio_mode_switch()
+        #ibus.cmd.request_for_radio_mode_switch()
     else: # disconnected | reset adapter MAC address and stop RADIO display thread
         DATA["bluetooth"]["adapter"] = None
         packet = ibus.cmd.get_display_packet("BT OFF", "connect")
@@ -124,7 +127,7 @@ def onBluetoothConnected(state, adapter=None):
         time.sleep(1.5)
 
         # switch back to FM
-        ibus.cmd.request_for_radio_mode_switch()
+        #ibus.cmd.request_for_radio_mode_switch()
 
 def onIBUSpacket(packet):
     global DATA
@@ -135,7 +138,7 @@ def onIBUSpacket(packet):
     50 04 68 32 11 1F - Volume Up button pressed
     50 04 68 3B 08 0F - Previous button pressed once
     50 04 68 3B 18 1F - Previous button (long press)
-    50 04 68 3B 28 2f - Previous button released 
+    50 04 68 3B 28 2f - Previous button released
     50 04 68 3B 01 06 - Next button pressed once
     50 04 68 3B 11 16 - Next button (long press)
     50 04 68 3B 21 26 - Next button released
@@ -155,7 +158,8 @@ def onIBUSpacket(packet):
         print("### Pressed (long): Previous button")
         if DATA["bluetooth"]["connected"]:
             print("      -> Rewind")
-            bluetooth.player_control("rewind")
+            # os.system('sudo shutdown -r now')
+            # bluetooth.player_control("rewind")
             return
 
     if packet.raw == "5004683b0106":
@@ -164,12 +168,13 @@ def onIBUSpacket(packet):
             print("      -> Next song")
             bluetooth.player_control("next")
             return
-            
+
     if packet.raw == "5004683b1116":
         print("### Pressed (long): Next button")
         if DATA["bluetooth"]["connected"]:
             print("      -> Fast Forward")
-            bluetooth.player_control("forward")
+            #bluetooth.player_control("forward")
+            #ibus.cmd.set_clock()
             return
 
     if packet.raw == "5004c83b8027":
@@ -182,7 +187,7 @@ def onIBUSpacket(packet):
                 print("      -> Play song")
                 bluetooth.player_control("play")
             return
-                
+
     if packet.raw == "5004c83b9037":
         print("### Pressed (long): DIAL button")
         if not DATA["bluetooth"]["connected"]:
@@ -203,14 +208,17 @@ def onIBUSpacket(packet):
     if packet.raw == "5003c8019a":
         print("### Pressed: R/T button")
 
+        packet = ibus.cmd.get_display_packet('Coolant:' + str(DATA["obc"]["coolant"]))
+        ibus.send(packet.raw)
         ibus.cmd.clown_nose_on()
-        ibus.cmd.set_clock()        
+        time.sleep(1.5)
+        #ibus.cmd.set_clock()
         return
 
     # split hex string into list of values
     data = []
     data = [packet.data[i:i+2] for i in range(0, len(packet.data), 2)]
-    
+
     # looking for vehicle VIN
     if packet.source_id == "d0" and packet.destination_id == "80":
         try:
@@ -265,7 +273,7 @@ def onIBUSpacket(packet):
             else:
                 # increase volume after reversing
                 if DATA["pdc"]["active"]:
-                    ibus.cmd.reset_display()       
+                    ibus.cmd.reset_display()
                     if DATA["bluetooth"]["connected"] and DATA["radio"]["to_resume"]:
                         bluetooth.player_control("play")
                         DATA["radio"]["to_resume"] = False
@@ -301,7 +309,7 @@ def onIBUSpacket(packet):
             DATA["lights"]["turn_right"] = check_bitmask(hex_value, 0x40)
             DATA["lights"]["turn-fast"] = check_bitmask(hex_value, 0x80)
             return
-        
+
         if data[0] == "5c":
             DATA["dimmer"] = int(data[1], 16)
             return
@@ -309,15 +317,15 @@ def onIBUSpacket(packet):
     if packet.source_id == "d0" and packet.destination_id == "3f":
         if data[0] == "a0":
             DATA["io_status"] = packet.raw
-            return  
-    
+            return
+
     """
     * Handle OBC messages sent from IKE
     * IBus Message: 80 0C FF 24 <System> 00 <Data> <CRC>
-    
+
     Base on: https://github.com/t3ddftw/DroidIBus/blob/master/app/src/main/java/com/ibus/droidibus/ibus/systems/BroadcastSystem.java
     https://github.com/t3ddftw/DroidIBus/blob/master/app/src/main/java/com/ibus/droidibus/ibus/systems/GFXNavigationSystem.java
-    """    
+    """
     if packet.source_id == "80" and packet.destination_id == "ff":
         # Fuel 1
         if data[1] == "04":
@@ -326,7 +334,7 @@ def onIBUSpacket(packet):
                 print("Fuel 1: %f" % DATA["obc"]["fuel_1"])
             except:
                 DATA["obc"]["fuel_1"] = None
-        # Fuel 2    
+        # Fuel 2
         elif data[1] == "05":
             try:
                 DATA["obc"]["fuel_2"] = float(packet.data[4:14].lstrip("00").decode("hex"))
@@ -358,16 +366,16 @@ def onIBUSpacket(packet):
             except:
                 DATA["obc"]["avg_speed"] = None
         return
-    
+
     """
     RAD Radio
     """
     if packet.source_id == "68" and packet.destination_id == "3f":
-        if packet.length == "0d": 
+        if packet.length == "0d":
             DATA["radio"]["active"] = True if data[1] == "31" else False
             print("Radio active: %s" % str(DATA["radio"]["active"]))
             return
- 
+
     """
     PDC Park Distance Control
     """
@@ -409,12 +417,12 @@ def onPlayerChanged(event_data):
         event_data["artist"] is None or \
         event_data["title"] is None:
         return
-    
+
     print("[%s] %s - %s" % (event_data["state"], event_data["artist"], event_data["title"]))
 
     """
     Send first packet with proper icon in the begining if only state changed
-    """    
+    """
     if DATA["player"]["artist"] == event_data["artist"] and \
         DATA["player"]["title"] == event_data["title"] and \
         not DATA["player"]["state"] == event_data["state"]:
@@ -437,7 +445,7 @@ def onPlayerChanged(event_data):
     """
     if event_data["state"] == "playing":
         ibus.display_thread = threading.Thread(target=ibus.cmd.print_on_display, \
-                                   kwargs={"data": [event_data["artist"], event_data["title"]]})
+                                   kwargs={"data": [event_data["artist"] + " ", event_data["title"] + " "]})
         ibus.display_thread.daemon = True
         ibus.display_thread.start()
 
@@ -451,7 +459,7 @@ def main():
 
     ibus = ibus_.IBUSService(onIBUSready, onIBUSpacket)
     ibus.cmd = ibus_.IBUSCommands(ibus)
-    
+
     ibus.main_thread = threading.Thread(target=ibus.start)
     ibus.main_thread.daemon = True
     ibus.main_thread.start()
@@ -463,15 +471,15 @@ def main():
         pass
     except:
         print("Unable to run the gobject main loop")
-    
+
     print("")
     shutdown()
     sys.exit(0)
-    
+
 def shutdown():
     global bluetooth
     global ibus
-    
+
     try:
         print("Stopping RADIO display thread...")
         while ibus.display_thread.isAlive():
