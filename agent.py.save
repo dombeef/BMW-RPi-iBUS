@@ -202,7 +202,7 @@ def onIBUSpacket(packet):
             print("      -> BT Disconnecting")
             packet = ibus.cmd.get_display_packet("DISABLING", "connect")
             ibus.send(packet.raw)
-            bluetooth.disconnect(DATA["bluetooth"]["adapter"])
+            bluetooth.disconnect(DATA["bluetooth"]["ada
         return
 
     if packet.raw == "5003c8019a":
@@ -212,7 +212,7 @@ def onIBUSpacket(packet):
         ibus.send(packet.raw)
         ibus.cmd.clown_nose_on()
         time.sleep(1.5)
-        ibus.cmd.set_clock()
+        #ibus.cmd.set_clock()
         return
 
     # split hex string into list of values
@@ -261,10 +261,10 @@ def onIBUSpacket(packet):
                 # decrease volume while reversing
                 if not DATA["pdc"]["active"]:
                     ibus.cmd.request_for_pdc()
-                    #ibus.cmd.volume_down()
+                    ibus.cmd.volume_down()
                     if DATA["bluetooth"]["connected"]:
                         if DATA["player"]["state"] == "playing":
-                            # bluetooth.player_control("pause")
+                            bluetooth.player_control("pause")
                             DATA["radio"]["to_resume"] = True
                         else:
                             DATA["radio"]["to_resume"] = False
@@ -275,7 +275,7 @@ def onIBUSpacket(packet):
                 if DATA["pdc"]["active"]:
                     ibus.cmd.reset_display()
                     if DATA["bluetooth"]["connected"] and DATA["radio"]["to_resume"]:
-                        # bluetooth.player_control("play")
+                        bluetooth.player_control("play")
                         DATA["radio"]["to_resume"] = False
                     ibus.cmd.volume_up()
                 DATA["pdc"]["active"] = False
@@ -418,7 +418,7 @@ def onPlayerChanged(event_data):
         event_data["title"] is None:
         return
 
-    print("[%s] %s - %s" % (event_data["state"], event_data["title"], event_data["artist"]))
+    print("[%s] %s - %s" % (event_data["state"], event_data["artist"], event_data["title"]))
 
     """
     Send first packet with proper icon in the begining if only state changed
@@ -427,7 +427,7 @@ def onPlayerChanged(event_data):
         DATA["player"]["title"] == event_data["title"] and \
         not DATA["player"]["state"] == event_data["state"]:
 
-        packet = ibus.cmd.get_display_packet(event_data["title"], event_data["artist"])
+        packet = ibus.cmd.get_display_packet(event_data["artist"], event_data["state"])
         ibus.send(packet.raw)
 
     """
@@ -445,7 +445,7 @@ def onPlayerChanged(event_data):
     """
     if event_data["state"] == "playing":
         ibus.display_thread = threading.Thread(target=ibus.cmd.print_on_display, \
-                                   kwargs={"data": [event_data["title"] + " ", event_data["artist"] + " "]})
+                                   kwargs={"data": [event_data["artist"] + " ", event_data["title"] + " "]})
         ibus.display_thread.daemon = True
         ibus.display_thread.start()
 
